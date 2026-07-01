@@ -56,6 +56,7 @@ bool IsSupported(rdcstr deviceID);
 bool SupportsNativeLayers(const rdcstr &deviceID);
 rdcstr DetermineInstalledABI(const rdcstr &deviceID, const rdcstr &packageName);
 rdcstr GetFriendlyName(const rdcstr &deviceID);
+bool PatchManifest(bytebuf &manifest);
 
 // supported ABIs
 enum class ABI

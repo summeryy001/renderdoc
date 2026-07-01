@@ -139,6 +139,9 @@
     <Filter Include="3rdparty\md5">
       <UniqueIdentifier>{fcbf71ce-3767-435c-9aa2-e1327b9016f4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\aosp">
+      <UniqueIdentifier>{0e256b31-41b3-48a8-a1da-9f6fdf392a9d}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Replay\Common">
       <UniqueIdentifier>{02773850-117a-47d9-b238-d5d4b96468b3}</UniqueIdentifier>
     </Filter>
@@ -422,6 +425,9 @@
     </ClInclude>
     <ClInclude Include="android\android_utils.h">
       <Filter>Android</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\aosp\android_manifest.h">
+      <Filter>3rdparty\aosp</Filter>
     </ClInclude>
     <ClInclude Include="android\jdwp.h">
       <Filter>Android</Filter>
@@ -876,6 +882,12 @@
       <Filter>OS\Posix\Android</Filter>
     </ClCompile>
     <ClCompile Include="android\android.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\android_manifest.cpp">
+      <Filter>Android</Filter>
+    </ClCompile>
+    <ClCompile Include="android\android_patch.cpp">
       <Filter>Android</Filter>
     </ClCompile>
     <ClCompile Include="android\android_tools.cpp">

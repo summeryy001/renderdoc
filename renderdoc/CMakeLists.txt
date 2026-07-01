@@ -156,10 +156,13 @@ set(sources
     core/bit_flag_iterator.h
     core/bit_flag_iterator_tests.cpp
     android/android.cpp
+    android/android_manifest.cpp
+    android/android_patch.cpp
     android/android_tools.cpp
     android/android_utils.cpp
     android/android.h
     android/android_utils.h
+    3rdparty/aosp/android_manifest.h
     android/jdwp.h
     android/jdwp.cpp
     android/jdwp_util.cpp

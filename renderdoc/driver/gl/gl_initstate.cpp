@@ -568,6 +568,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   // thread.
   RDCASSERT(res.ContextShareGroup);
 
+  if(!res.ContextShareGroup)
+    return false;
+
   ContextPair &ctx = m_Driver->GetCtx();
   if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
   {

@@ -104,6 +104,9 @@ void GLResourceManager::MarkFBODirtyWithWriteReference(GLResourceRecord *record)
 void GLResourceManager::MarkFBOAttachmentsReferenced(ResourceId fboid, GLResourceRecord *record,
                                                      FrameRefType ref, bool markDirty)
 {
+  if(!record)
+    return;
+
   FBOCache *cache = m_FBOAttachmentsCache[fboid];
 
   if(!cache)

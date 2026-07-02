@@ -919,6 +919,14 @@ struct AndroidRemoteServer : public RemoteServer
                                          const rdcarray<EnvironmentModification> &env,
                                          const CaptureOptions &opts) override;
 
+  virtual void AddOrRemoveProcessListener(ITargetControl *listener, bool add = true) override
+  {
+    LazilyStartLogcatThread();
+
+    if(m_LogcatThread)
+      m_LogcatThread->AddOrRemoveProcessListener(listener, add);
+  }
+
 private:
   void ResetAndroidSettings() { Android::ResetCaptureSettings(m_deviceID); }
   void LazilyStartLogcatThread()
@@ -1374,6 +1382,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       activityName = Android::GetDefaultActivityForPackage(m_deviceID, packageName);
 
     rdcstr processName = Android::GetProcessNameForActivity(m_deviceID, packageName, activityName);
+    m_LogcatThread->SetMainProcessName(processName);
 
     if(Android_Debug_ProcessLaunch())
     {

@@ -105,6 +105,7 @@ public:
   virtual bool HasEmbeddedDependencies();
   virtual bool HasPendingDependencies();
   virtual rdcarray<rdcstr> GetPendingDependenciesNicknames();
+  virtual void AddOrRemoveProcessListener(ITargetControl *listener, bool add = true);
 
 protected:
   Network::Socket *m_Socket;

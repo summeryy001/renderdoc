@@ -1557,6 +1557,8 @@ struct IReplayManager
 )");
   virtual RemoteHost CurrentRemote() = 0;
 
+  virtual IRemoteServer *CurrentRemoteServer() = 0;
+
   DOCUMENT(R"(Retrieves the capture access handle for the currently open file.
 
 :return: The file handle active, or ``None`` if no capture is open.

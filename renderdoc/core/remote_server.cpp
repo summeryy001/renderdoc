@@ -38,7 +38,7 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
-RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 5000,
+RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 30 * 1000,
             "Timeout in milliseconds for remote server operations.");
 
 RDOC_CONFIG(bool, RemoteServer_DebugLogging, false,
@@ -1477,6 +1477,10 @@ void RemoteServer::ShutdownServerAndConnection()
 bool RemoteServer::Connected()
 {
   return m_Socket != NULL && m_Socket->Connected();
+}
+
+void RemoteServer::AddOrRemoveProcessListener(ITargetControl *listener, bool add)
+{
 }
 
 ResultDetails RemoteServer::Ping()

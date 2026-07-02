@@ -91,6 +91,8 @@ LiveCapture::LiveCapture(ICaptureContext &ctx, const QString &hostname, const QS
       m_RemoteIdent(ident),
       m_Main(main)
 {
+  m_IsAndroid = hostname.startsWith(lit("adb://"));
+
   ui->setupUi(this);
 
   m_Disconnect.release();
@@ -272,6 +274,7 @@ void LiveCapture::on_childProcesses_itemActivated(QListWidgetItem *item)
     {
       LiveCapture *live =
           new LiveCapture(m_Ctx, m_Hostname, m_HostFriendlyname, ident, m_Main, m_Main);
+      live->setProcessName(sel[0]->data(CapPtrRole).toString());
       m_Main->ShowLiveCapture(live);
     }
   }
@@ -451,10 +454,11 @@ void LiveCapture::childUpdate()
 
   // We only compare the child processes for a local context
   const bool local = isLocal();
+  const bool android = m_IsAndroid;
 
   // enumerate processes outside of the lock
   QProcessList processes;
-  if(local)
+  if(local && !android)
   {
     processes = QProcessInfo::enumerate(false);
   }
@@ -480,7 +484,7 @@ void LiveCapture::childUpdate()
           }
         }
 
-        if(!found && local)
+        if(!found && local && !android)
         {
           if(m_Children[i].added)
           {
@@ -506,13 +510,20 @@ void LiveCapture::childUpdate()
         {
           QString name = tr("Unknown Process");
 
-          // find the name
-          for(QProcessInfo &p : processes)
+          if(!m_Children[i].name.isEmpty())
           {
-            if(p.pid() == m_Children[i].PID)
+            name = m_Children[i].name;
+          }
+          else
+          {
+            // find the name
+            for(QProcessInfo &p : processes)
             {
-              name = p.name();
-              break;
+              if(p.pid() == m_Children[i].PID)
+              {
+                name = p.name();
+                break;
+              }
             }
           }
 
@@ -522,6 +533,7 @@ void LiveCapture::childUpdate()
           QListWidgetItem *item = new QListWidgetItem(text, ui->childProcesses);
           item->setData(PIDRole, QVariant(m_Children[i].PID));
           item->setData(IdentRole, QVariant(m_Children[i].ident));
+          item->setData(CapPtrRole, QVariant(name));
           ui->childProcesses->addItem(item);
         }
       }
@@ -1286,7 +1298,11 @@ void LiveCapture::connectionThreadEntry()
     if(!m_Connected.available())
       return;
 
-    if(pid)
+    if(!m_ProcessName.isEmpty() && pid)
+      setTitle(QFormatStr("%1 [PID %2]").arg(m_ProcessName).arg(pid));
+    else if(!m_ProcessName.isEmpty())
+      setTitle(m_ProcessName);
+    else if(pid)
       setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
     else
       setTitle(target);
@@ -1295,6 +1311,10 @@ void LiveCapture::connectionThreadEntry()
     ui->connectionIcon->setPixmap(Pixmaps::connect(ui->connectionIcon));
     ui->connectionStatus->setText(tr("Established"));
   });
+
+  IRemoteServer *remoteServer = m_Ctx.Replay().CurrentRemoteServer();
+  if(remoteServer)
+    remoteServer->AddOrRemoveProcessListener(conn, true);
 
   while(conn && conn->Connected())
   {
@@ -1334,6 +1354,9 @@ void LiveCapture::connectionThreadEntry()
 
     if(!m_Disconnect.available())
     {
+      if(remoteServer)
+        remoteServer->AddOrRemoveProcessListener(conn, false);
+
       conn->Shutdown();
       conn = NULL;
       m_Connected.acquire();
@@ -1437,6 +1460,38 @@ void LiveCapture::connectionThreadEntry()
       GUIInvoke::call(this, [this, windows]() { ui->cycleActiveWindow->setEnabled(windows > 1); });
     }
 
+    if(m_IsAndroid)
+    {
+      rdcstr newName = conn->GetTopProcessName();
+      uint32_t newPid = conn->GetTopPID();
+
+      if(newPid != 0)
+      {
+        QMutexLocker l(&m_ChildrenLock);
+
+        bool found = false;
+        for(const ChildProcess &child : m_Children)
+        {
+          if(child.PID == newPid)
+          {
+            found = true;
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          ChildProcess c;
+          c.PID = newPid;
+          c.ident = m_RemoteIdent + 1;
+          c.name = newName;
+          m_Children.push_back(c);
+
+          GUIInvoke::call(this, [this]() { childUpdate(); });
+        }
+      }
+    }
+
     if(msg.type == TargetControlMessageType::RequestShow)
     {
       GUIInvoke::call(this, [this]() { m_Main->BringToFront(); });
@@ -1445,6 +1500,9 @@ void LiveCapture::connectionThreadEntry()
 
   if(conn)
   {
+    if(remoteServer)
+      remoteServer->AddOrRemoveProcessListener(conn, false);
+
     conn->Shutdown();
     conn = NULL;
     m_Connected.acquire();

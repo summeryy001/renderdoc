@@ -718,11 +718,14 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
   LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
     if(isUnshareableDeviceInUse())
     {
-      RDDialog::warning(this, tr("RenderDoc is already capturing an app on this device"),
-                        tr("A running app on this device is already being captured with RenderDoc. "
-                           "First please close the app then try to launch again."),
-                        QMessageBox::Ok);
-      return;
+      QMessageBox::StandardButton res = RDDialog::question(
+          this, tr("RenderDoc is already capturing an app on this device"),
+          tr("A running app on this device is already being captured with RenderDoc. "
+             "Do you want to close it and launch now?"),
+          QMessageBox::Yes | QMessageBox::No);
+
+      if(res != QMessageBox::Yes)
+        return;
     }
 
     QString capturefile = m_Ctx.TempCaptureFilename(QFileInfo(exe).baseName());

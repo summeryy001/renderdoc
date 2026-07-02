@@ -1232,6 +1232,10 @@ The details of the types of messages that can be received are listed under
   DOCUMENT("Cycle the currently active window if there are more windows to capture.");
   virtual void CycleActiveWindow() = 0;
 
+  virtual void ResetTopProcess(const rdcstr &processName, uint32_t pid) = 0;
+  virtual rdcstr GetTopProcessName() = 0;
+  virtual uint32_t GetTopPID() = 0;
+
 protected:
   ITargetControl() = default;
   ~ITargetControl() = default;
@@ -1566,6 +1570,8 @@ or an error has occurred.
   virtual void CloseCapture(IReplayController *rend) = 0;
 
   static const uint32_t NoPreference = ~0U;
+
+  virtual void AddOrRemoveProcessListener(ITargetControl *listener, bool add = true) = 0;
 
 protected:
   IRemoteServer() = default;

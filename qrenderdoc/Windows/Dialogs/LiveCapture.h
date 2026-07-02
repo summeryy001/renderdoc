@@ -123,6 +123,7 @@ private:
     uint32_t PID = 0;
     uint32_t ident = 0;
     bool added = false;
+    QString name;
   };
 
   struct APIStatus
@@ -152,6 +153,7 @@ private:
   void killThread();
 
   void setTitle(const QString &title);
+  void setProcessName(const QString &name) { m_ProcessName = name; }
   void openCapture(Capture *cap);
   bool saveCapture(Capture *cap, QString path);
   bool checkAllowDelete();
@@ -165,6 +167,8 @@ private:
   QString m_HostFriendlyname;
   uint32_t m_RemoteIdent;
   MainWindow *m_Main;
+  bool m_IsAndroid = false;
+  QString m_ProcessName;
 
   LambdaThread *m_ConnectThread = NULL;
   QSemaphore m_TriggerCapture;

@@ -659,6 +659,14 @@ public:
   rdcstr GetAPI() { return m_API; }
   uint32_t GetPID() { return m_PID; }
   rdcstr GetBusyClient() { return m_BusyClient; }
+  void ResetTopProcess(const rdcstr &processName, uint32_t pid)
+  {
+    RDCLOG("TargetControl ResetTopProcess processName=%s pid=%u", processName.c_str(), pid);
+    m_TopProcess = processName;
+    m_TopPID = pid;
+  }
+  rdcstr GetTopProcessName() { return m_TopProcess; }
+  uint32_t GetTopPID() { return m_TopPID; }
   void TriggerCapture(uint32_t numFrames)
   {
     WRITE_DATA_SCOPE();
@@ -957,6 +965,8 @@ private:
   ReadSerialiser reader;
   rdcstr m_Target, m_API, m_BusyClient;
   uint32_t m_Version, m_PID;
+  rdcstr m_TopProcess;
+  uint32_t m_TopPID = 0;
 
   std::map<uint32_t, rdcstr> m_CaptureCopies;
 };

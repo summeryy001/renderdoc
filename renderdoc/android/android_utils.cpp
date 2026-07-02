@@ -24,6 +24,7 @@
 
 #include "android_utils.h"
 #include <ctype.h>
+#include <cstdlib>
 #include <algorithm>
 #include "common/formatting.h"
 #include "common/threading.h"
@@ -696,6 +697,7 @@ LogcatThread *ProcessLogcat(rdcstr deviceID)
 void LogcatThread::Finish()
 {
   SCOPED_LOCK(lock);
+  m_ProcessListeners.clear();
   finishTime = Timing::GetUTCTime();
   SelfDelete();
 }
@@ -762,6 +764,93 @@ void LogcatThread::Tick()
   // store the last line (if we have one) to search for and start from next time
   if(!lines.empty())
     lastLogcatLine = lines.back();
+
+  if(mainProcessName.empty())
+    return;
+
+  rdcstr processInfo =
+      Android::adbExecCommand(deviceID, "shell dumpsys activity activities | grep mRootProcess=",
+                              ".", true)
+          .strStdout.trimmed();
+
+  int32_t start = processInfo.find("ProcessRecord{");
+  if(start < 0)
+    return;
+
+  processInfo = processInfo.substr(start + 14);
+
+  int32_t end = processInfo.find("}");
+  if(end < 0)
+    return;
+
+  processInfo = processInfo.substr(0, end);
+
+  rdcarray<rdcstr> tokens;
+  split(processInfo, tokens, ' ');
+  if(tokens.size() < 2)
+    return;
+
+  processInfo = tokens[1];
+
+  int32_t pidEnd = processInfo.find_first_of(":");
+  if(pidEnd < 0)
+    return;
+
+  char *parseEnd = NULL;
+  uint32_t pid = (uint32_t)strtoul(processInfo.substr(0, pidEnd).c_str(), &parseEnd, 10);
+  if(pid == 0 || parseEnd == NULL || *parseEnd != 0)
+    return;
+
+  rdcstr name = processInfo.substr(pidEnd + 1);
+  int32_t userStart = name.find("/");
+  if(userStart > 1)
+    name = name.substr(0, userStart);
+
+  if(!name.contains(mainProcessName) || (curTopPID == pid && curTopProcessName == name))
+    return;
+
+  curTopPID = pid;
+  curTopProcessName = name;
+
+  RDCLOG("deviceID=%s top visible process changed to pid=%u name=%s mainProcessName=%s",
+         deviceID.c_str(), pid, name.c_str(), mainProcessName.c_str());
+
+  SCOPED_LOCK(lock);
+  for(int32_t i = 0; i < m_ProcessListeners.count(); i++)
+  {
+    ITargetControl *listener = m_ProcessListeners[i];
+
+    if(listener == NULL)
+      continue;
+
+    if(listener->Connected())
+    {
+      listener->ResetTopProcess(name, pid);
+    }
+    else
+    {
+      m_ProcessListeners.erase(i);
+      i--;
+    }
+  }
+}
+
+void LogcatThread::AddOrRemoveProcessListener(ITargetControl *listener, bool add)
+{
+  if(listener == NULL)
+    return;
+
+  SCOPED_LOCK(lock);
+
+  if(add)
+  {
+    if(!m_ProcessListeners.contains(listener))
+      m_ProcessListeners.push_back(listener);
+  }
+  else
+  {
+    m_ProcessListeners.removeOne(listener);
+  }
 }
 };
 

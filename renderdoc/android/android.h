@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "api/replay/renderdoc_replay.h"
 #include "os/os_specific.h"
 
 // public interface, for other non-android parts of the code
@@ -43,6 +44,8 @@ bool InjectWithJDWP(const rdcstr &deviceID, uint16_t jdwpport);
 struct LogcatThread
 {
   void Finish();
+  void AddOrRemoveProcessListener(ITargetControl *listener, bool add = true);
+  void SetMainProcessName(rdcstr processName) { mainProcessName = processName; }
 
 private:
   void Tick();
@@ -74,6 +77,10 @@ private:
 
   // the thread handle
   Threading::ThreadHandle thread = 0;
+  uint32_t curTopPID = 0;
+  rdcstr curTopProcessName;
+  rdcarray<ITargetControl *> m_ProcessListeners;
+  rdcstr mainProcessName;
 
   friend LogcatThread *ProcessLogcat(rdcstr deviceID);
 };

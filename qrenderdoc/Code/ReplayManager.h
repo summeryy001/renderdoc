@@ -91,6 +91,7 @@ public:
   ICaptureFile *GetCaptureFile() { return m_CaptureFile; }
   void ReopenCaptureFile(const QString &path);
   RemoteHost CurrentRemote() { return m_RemoteHost; }
+  IRemoteServer *CurrentRemoteServer() { return m_Remote; }
   ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
                                  const rdcarray<EnvironmentModification> &env,
                                  const rdcstr &capturefile, CaptureOptions opts);

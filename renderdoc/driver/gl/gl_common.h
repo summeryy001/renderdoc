@@ -2249,6 +2249,11 @@ enum class GLChunk : uint32_t
   glFlushMappedBufferRangeEXT,
   glClipControlEXT,
 
+  glEGLImageTargetTexture2DOES,
+  glEGLImageTargetRenderbufferStorageOES,
+  glEGLImageTargetTexStorageEXT,
+  glEGLImageTargetTextureStorageEXT,
+
   SetCommandAnnotation,
 
   Max,

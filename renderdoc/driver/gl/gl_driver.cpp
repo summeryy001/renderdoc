@@ -944,6 +944,8 @@ rdcstr WrappedOpenGL::GetChunkName(uint32_t idx)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
+  ReleaseExternalTextureResources();
+
   if(m_IndirectBuffer)
     GL.glDeleteBuffers(1, &m_IndirectBuffer);
 

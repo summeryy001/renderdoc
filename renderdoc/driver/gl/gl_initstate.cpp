@@ -732,7 +732,13 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId id, GLResource 
     // we only copy contents for non-views
     GLuint tex = 0;
 
-    if(!details.view)
+    if(!details.view && details.curType == eGL_TEXTURE_EXTERNAL_OES)
+    {
+      rdcarray<byte> externalData = m_Driver->GetExternalTextureData(res.name);
+      details.compressedData[0].assign(externalData.data(), externalData.size());
+      initContents.resource = GLResource(res.ContextShareGroup, eResTexture, res.name);
+    }
+    else if(!details.view)
     {
       {
         GLuint oldtex = 0;
@@ -1021,6 +1027,14 @@ uint64_t GLResourceManager::GetSize_InitialState(ResourceId resid, const GLIniti
     if(TextureState.internalformat == eGL_NONE || TextureState.type == eGL_TEXTURE_BUFFER ||
        TextureState.isView)
       return ret;
+
+    if(TextureState.type == eGL_TEXTURE_EXTERNAL_OES)
+    {
+      uint64_t size = (uint64_t)GetByteSize(TextureState.width, TextureState.height, 1,
+                                            GetBaseFormat(TextureState.internalformat),
+                                            GetDataType(TextureState.internalformat));
+      return ret + WriteSerialiser::GetChunkAlignment() + size + 64;
+    }
 
     bool isCompressed = IsCompressedFormat(TextureState.internalformat);
 
@@ -1399,6 +1413,46 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
         // no contents to copy for texture buffer (it's copied under the buffer)
         // same applies for texture views, their data is copies under the aliased texture.
         // We just set the metadata blob.
+      }
+      else if(TextureState.type == eGL_TEXTURE_EXTERNAL_OES)
+      {
+        rdcarray<byte> &externalData = details.compressedData[0];
+        uint64_t externalSize = (uint64_t)externalData.size();
+
+        SERIALISE_ELEMENT(externalSize);
+
+        if(ser.IsReading())
+          externalData.resize((size_t)externalSize);
+
+        byte *externalPixels = externalData.data();
+        SERIALISE_ELEMENT_ARRAY(externalPixels, externalSize);
+
+        if(IsReplayingAndReading() && !ser.IsErrored())
+        {
+          details.mipsValid = 1;
+          details.dimension = 2;
+          details.depth = 1;
+          details.width = TextureState.width;
+          details.height = TextureState.height;
+          details.internalFormat = TextureState.internalformat;
+          details.compressedData[0].assign(externalPixels, (size_t)externalSize);
+
+          GLeglImageOES eglImage =
+              m_Driver->CreateEGLImage(TextureState.width, TextureState.height,
+                                       TextureState.internalformat, externalPixels, externalSize);
+
+          if(eglImage && GL.glEGLImageTargetTexture2DOES)
+          {
+            GLResource liveRes = GetResource(id);
+
+            GLuint prevtex = 0;
+            GL.glGetIntegerv(TextureBinding(TextureState.type), (GLint *)&prevtex);
+
+            GL.glBindTexture(TextureState.type, liveRes.name);
+            GL.glEGLImageTargetTexture2DOES(TextureState.type, eglImage);
+            GL.glBindTexture(TextureState.type, prevtex);
+          }
+        }
       }
       else
       {

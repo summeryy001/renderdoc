@@ -41,6 +41,7 @@ set(sources
     wrappers/gl_debug_funcs.cpp
     wrappers/gl_draw_funcs.cpp
     wrappers/gl_emulated.cpp
+    wrappers/gl_external_texture.cpp
     wrappers/gl_framebuffer_funcs.cpp
     wrappers/gl_get_funcs.cpp
     wrappers/gl_interop_funcs.cpp

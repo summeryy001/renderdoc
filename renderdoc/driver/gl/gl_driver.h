@@ -35,6 +35,8 @@
 #include "gl_renderstate.h"
 #include "gl_resources.h"
 
+struct AHardwareBuffer;
+
 class GLReplay;
 
 namespace glslang
@@ -678,6 +680,12 @@ public:
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
   void RegisterDebugCallback();
+
+  rdcarray<rdcpair<GLeglImageOES, struct AHardwareBuffer *>> m_ExternalTextureResources;
+  GLeglImageOES CreateEGLImage(GLint width, GLint height, GLenum internalFormat,
+                               const byte *pixels, uint64_t size);
+  rdcarray<byte> GetExternalTextureData(GLuint texture);
+  void ReleaseExternalTextureResources();
 
   bool IsUnsafeDraw(uint32_t eventId) { return m_UnsafeDraws.find(eventId) != m_UnsafeDraws.end(); }
   // replay interface

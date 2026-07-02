@@ -4111,6 +4111,32 @@ int TextureViewer::SaveStageResourcePreviews(ShaderStage stage,
                                              bool copy, bool rw, const QString &savePath)
 {
   int successCount = 0;
+  int failCount = 0;
+  QString firstError;
+
+  auto textureFilename = [](ResourceId resourceId, FileType destType) {
+    QString name = ToQStr(resourceId);
+    const QString invalidChars = lit(":\\/*?\"<>|");
+    for(QChar &ch : name)
+    {
+      if(invalidChars.contains(ch))
+        ch = QLatin1Char('_');
+    }
+
+    return QFormatStr("%1.%2").arg(name).arg(ToQStr(destType).toLower());
+  };
+
+  auto batchSaveConfig = [this](ResourceId resourceId) {
+    TextureSave saveConfig;
+    saveConfig.resourceId = resourceId;
+    saveConfig.destType = m_SaveConfig.destType;
+    saveConfig.comp = m_SaveConfig.comp;
+    saveConfig.alpha = m_SaveConfig.alpha;
+    saveConfig.alphaCol = m_SaveConfig.alphaCol;
+    saveConfig.jpegQuality = m_SaveConfig.jpegQuality;
+    saveConfig.channelExtract = -1;
+    return saveConfig;
+  };
 
   for(const UsedDescriptor &desc : descriptors)
   {
@@ -4123,12 +4149,8 @@ int TextureViewer::SaveStageResourcePreviews(ShaderStage stage,
     if(!show || resourceId == ResourceId())
       continue;
 
-    TextureSave saveConfig = m_SaveConfig;
-    saveConfig.resourceId = resourceId;
-    saveConfig.channelExtract = -1;
-
-    QString filename = QDir(savePath).filePath(
-        QFormatStr("%1.%2").arg(ToQStr(resourceId)).arg(ToQStr(saveConfig.destType).toLower()));
+    TextureSave saveConfig = batchSaveConfig(resourceId);
+    QString filename = QDir(savePath).filePath(textureFilename(resourceId, saveConfig.destType));
 
     ResultDetails result = {ResultCode::Succeeded};
 
@@ -4137,8 +4159,19 @@ int TextureViewer::SaveStageResourcePreviews(ShaderStage stage,
     });
 
     if(result.OK())
+    {
       successCount++;
+    }
+    else
+    {
+      failCount++;
+      if(firstError.isEmpty())
+        firstError = QFormatStr("%1: %2").arg(filename).arg(result.Message());
+    }
   }
+
+  if(failCount > 0)
+    qWarning() << "Batch texture save failed" << failCount << "textures. First error:" << firstError;
 
   return successCount;
 }
@@ -4253,15 +4286,37 @@ void TextureViewer::on_saveAllTexs_clicked()
   progressDialog.setValue(step);
 
   int successCount = 0;
+  int failCount = 0;
+  QString firstError;
+
+  auto textureFilename = [](ResourceId resourceId, FileType destType) {
+    QString name = ToQStr(resourceId);
+    const QString invalidChars = lit(":\\/*?\"<>|");
+    for(QChar &ch : name)
+    {
+      if(invalidChars.contains(ch))
+        ch = QLatin1Char('_');
+    }
+
+    return QFormatStr("%1.%2").arg(name).arg(ToQStr(destType).toLower());
+  };
+
+  auto batchSaveConfig = [this](ResourceId resourceId) {
+    TextureSave saveConfig;
+    saveConfig.resourceId = resourceId;
+    saveConfig.destType = m_SaveConfig.destType;
+    saveConfig.comp = m_SaveConfig.comp;
+    saveConfig.alpha = m_SaveConfig.alpha;
+    saveConfig.alphaCol = m_SaveConfig.alphaCol;
+    saveConfig.jpegQuality = m_SaveConfig.jpegQuality;
+    saveConfig.channelExtract = -1;
+    return saveConfig;
+  };
 
   for(const TextureDescription &tex : textures)
   {
-    TextureSave saveConfig = m_SaveConfig;
-    saveConfig.resourceId = tex.resourceId;
-    saveConfig.channelExtract = -1;
-
-    QString filename = QDir(dirPath).filePath(
-        QFormatStr("%1.%2").arg(ToQStr(tex.resourceId)).arg(ToQStr(saveConfig.destType).toLower()));
+    TextureSave saveConfig = batchSaveConfig(tex.resourceId);
+    QString filename = QDir(dirPath).filePath(textureFilename(tex.resourceId, saveConfig.destType));
 
     ResultDetails result = {ResultCode::Succeeded};
 
@@ -4270,16 +4325,30 @@ void TextureViewer::on_saveAllTexs_clicked()
     });
 
     if(result.OK())
+    {
       successCount++;
+    }
+    else
+    {
+      failCount++;
+      if(firstError.isEmpty())
+        firstError = QFormatStr("%1: %2").arg(filename).arg(result.Message());
+    }
 
     progressDialog.setValue(++step);
   }
 
   progressDialog.close();
 
+  if(failCount > 0)
+    qWarning() << "Save all textures failed" << failCount << "textures. First error:" << firstError;
+
   res = RDDialog::information(
       NULL, tr(""),
-      tr("Saving all textures done, total count is %1, dir is %2").arg(successCount).arg(dirPath));
+      tr("Saving all textures done, total count is %1, failed count is %2, dir is %3")
+          .arg(successCount)
+          .arg(failCount)
+          .arg(dirPath));
 
   if(res)
     QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));

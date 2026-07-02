@@ -58,6 +58,9 @@ void adbForwardPorts(uint16_t portbase, const rdcstr &deviceID, uint16_t jdwpPor
                                    RenderDoc_FirstTargetControlPort),
                  ".", silent);
 
+  for(int port = RenderDoc_FirstTargetControlPort + 1; port <= RenderDoc_LastTargetControlPort; port++)
+    adbExecCommand(deviceID, StringFormat::Fmt(forwardCommand, port, port), ".", silent);
+
   if(jdwpPort && pid)
     adbExecCommand(deviceID, StringFormat::Fmt("forward tcp:%hu jdwp:%i", jdwpPort, pid));
 }
@@ -1289,6 +1292,8 @@ struct AndroidController : public IDeviceProtocolHandler
     // we only support a single target control connection on android
     else if(srcPort == RenderDoc_FirstTargetControlPort)
       return portbase + RenderDoc_ForwardTargetControlOffset;
+    else if(srcPort > RenderDoc_FirstTargetControlPort && srcPort <= RenderDoc_LastTargetControlPort)
+      return srcPort;
 
     return 0;
   }

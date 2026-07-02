@@ -24,13 +24,14 @@
 
 #include "TextureSaveDialog.h"
 #include <QColorDialog>
+#include <QDir>
 #include <QFileInfo>
 #include "Code/QRDUtils.h"
 #include "ui_TextureSaveDialog.h"
 
 TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOverlaySelection,
-                                     const TextureSave &s, QWidget *parent)
-    : QDialog(parent), ui(new Ui::TextureSaveDialog)
+                                     const TextureSave &s, QWidget *parent, SaveType saveType)
+    : QDialog(parent), ui(new Ui::TextureSaveDialog), m_SaveType(saveType)
 {
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
   ui->setupUi(this);
@@ -45,6 +46,11 @@ TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, bool enableOve
   ui->sliceSelect->setFont(Formatter::PreferredFont());
   ui->blackPoint->setFont(Formatter::PreferredFont());
   ui->whitePoint->setFont(Formatter::PreferredFont());
+
+  if(m_SaveType == SaveType::Batch)
+    setWindowTitle(tr("Batch Save Textures"));
+  else if(m_SaveType == SaveType::All)
+    setWindowTitle(tr("Save All Textures"));
 
   if(!enableOverlaySelection)
     ui->texSelectionGroup->hide();
@@ -548,6 +554,14 @@ void TextureSaveDialog::on_whitePoint_textEdited(const QString &arg)
 
 void TextureSaveDialog::on_browse_clicked()
 {
+  if(m_SaveType != SaveType::Single)
+  {
+    QString dir = RDDialog::getExistingDirectory(this, tr("Choose directory for saving textures"));
+    if(!dir.isEmpty())
+      ui->filename->setText(dir);
+    return;
+  }
+
   QString filter;
 
   // put the selected filetype first
@@ -666,6 +680,29 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
 
   if(ok)
     saveData.comp.whitePoint = d;
+
+  if(m_SaveType != SaveType::Single)
+  {
+    QDir dir(filename());
+    if(!dir.isAbsolute())
+    {
+      RDDialog::critical(
+          this, tr("Save Texture"),
+          tr("%1\nIs not an absolute path.\nCheck the path and try again.").arg(filename()));
+      return;
+    }
+
+    if(!dir.exists())
+    {
+      RDDialog::critical(this, tr("Save Texture"),
+                         tr("%1\nPath does not exist.\nCheck the path and try again.").arg(filename()));
+      return;
+    }
+
+    setResult(1);
+    accept();
+    return;
+  }
 
   QFileInfo fi(filename());
 

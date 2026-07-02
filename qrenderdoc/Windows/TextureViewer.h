@@ -192,6 +192,8 @@ private slots:
   void on_resourceDetails_clicked();
   void on_texListShow_clicked();
   void on_saveTex_clicked();
+  void on_saveTexs_clicked();
+  void on_saveAllTexs_clicked();
   void on_debugPixelContext_clicked();
   void on_pixelHistory_clicked();
 
@@ -316,6 +318,8 @@ private:
   void UI_SetScale(float s);
   void UI_SetScale(float s, int x, int y);
   void UI_CalcScrollbars();
+  int SaveStageResourcePreviews(ShaderStage stage, const rdcarray<UsedDescriptor> &descriptors,
+                                bool copy, bool rw, const QString &savePath);
 
   QPoint m_DragStartScroll;
   QPoint m_DragStartPos;

@@ -492,6 +492,40 @@
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="saveTexs">
+      <property name="toolTip">
+       <string>Batch Save Textures (Inputs)</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/save2.png</normaloff>:/save2.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="saveAllTexs">
+      <property name="toolTip">
+       <string>Save All Textures</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/save3.png</normaloff>:/save3.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QToolButton" name="viewTexBuffer">
       <property name="toolTip">
        <string>Open the texture contents in a raw buffer viewer</string>

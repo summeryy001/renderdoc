@@ -27,6 +27,8 @@
 #include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
+#include <QDesktopServices>
+#include <QDir>
 #include <QFileSystemWatcher>
 #include <QFontDatabase>
 #include <QItemDelegate>
@@ -34,7 +36,9 @@
 #include <QMenu>
 #include <QPainter>
 #include <QPointer>
+#include <QProgressDialog>
 #include <QStyledItemDelegate>
+#include <QUrl>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Dialogs/TextureSaveDialog.h"
@@ -2928,6 +2932,8 @@ void TextureViewer::OnCaptureLoaded()
   WindowingData contextData = ui->pixelContext->GetWidgetWindowingData();
 
   ui->saveTex->setEnabled(true);
+  ui->saveTexs->setEnabled(true);
+  ui->saveAllTexs->setEnabled(true);
   ui->locationGoto->setEnabled(true);
   ui->viewTexBuffer->setEnabled(true);
 
@@ -3114,6 +3120,8 @@ void TextureViewer::OnCaptureClosed()
   m_CustomShaders.clear();
 
   ui->saveTex->setEnabled(false);
+  ui->saveTexs->setEnabled(false);
+  ui->saveAllTexs->setEnabled(false);
   ui->locationGoto->setEnabled(false);
   ui->viewTexBuffer->setEnabled(false);
 
@@ -4096,6 +4104,185 @@ void TextureViewer::on_saveTex_clicked()
                          tr("Error saving texture %1:\n\n%2").arg(fn).arg(result.Message()));
     }
   }
+}
+
+int TextureViewer::SaveStageResourcePreviews(ShaderStage stage,
+                                             const rdcarray<UsedDescriptor> &descriptors,
+                                             bool copy, bool rw, const QString &savePath)
+{
+  int successCount = 0;
+
+  for(const UsedDescriptor &desc : descriptors)
+  {
+    Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, desc.access.stage,
+                     desc.access.index, desc.access.arrayElement);
+
+    ResourceId resourceId = desc.descriptor.resource;
+    bool show = !desc.access.staticallyUnused || copy || follow == m_Following;
+
+    if(!show || resourceId == ResourceId())
+      continue;
+
+    TextureSave saveConfig = m_SaveConfig;
+    saveConfig.resourceId = resourceId;
+    saveConfig.channelExtract = -1;
+
+    QString filename = QDir(savePath).filePath(
+        QFormatStr("%1.%2").arg(ToQStr(resourceId)).arg(ToQStr(saveConfig.destType).toLower()));
+
+    ResultDetails result = {ResultCode::Succeeded};
+
+    m_Ctx.Replay().BlockInvoke([saveConfig, &result, filename](IReplayController *r) {
+      result = r->SaveTexture(saveConfig, filename);
+    });
+
+    if(result.OK())
+      successCount++;
+  }
+
+  return successCount;
+}
+
+void TextureViewer::on_saveTexs_clicked()
+{
+  TextureDescription *texptr = GetCurrentTexture();
+
+  if(!texptr || !m_Output)
+    return;
+
+  m_SaveConfig.resourceId = m_TexDisplay.resourceId;
+  m_SaveConfig.typeCast = m_TexDisplay.typeCast;
+  m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.subresource.slice;
+  m_SaveConfig.mip = (int)m_TexDisplay.subresource.mip;
+  m_SaveConfig.channelExtract = -1;
+  m_SaveConfig.comp.blackPoint = m_TexDisplay.rangeMin;
+  m_SaveConfig.comp.whitePoint = m_TexDisplay.rangeMax;
+  m_SaveConfig.alphaCol = m_TexDisplay.backgroundColor;
+
+  TextureSaveDialog saveDialog(*texptr, false, m_SaveConfig, this,
+                               TextureSaveDialog::SaveType::Batch);
+  int res = RDDialog::show(&saveDialog);
+
+  m_SaveConfig = saveDialog.config();
+
+  if(!res)
+    return;
+
+  ANALYTIC_SET(Export.Texture, true);
+
+  QString dirPath = saveDialog.filename();
+
+  bool copy = false, clear = false, compute = false;
+  Following::GetActionContext(m_Ctx, copy, clear, compute);
+
+  ShaderStage stages[] = {
+      ShaderStage::Vertex, ShaderStage::Hull, ShaderStage::Domain, ShaderStage::Geometry,
+      ShaderStage::Pixel,  ShaderStage::Task, ShaderStage::Mesh,
+  };
+
+  int count = ARRAY_COUNT(stages);
+
+  if(compute)
+  {
+    stages[0] = ShaderStage::Compute;
+    count = 1;
+  }
+
+  int successCount = 0;
+
+  for(int i = 0; i < count; i++)
+  {
+    ShaderStage stage = stages[i];
+    m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage, true);
+    successCount +=
+        SaveStageResourcePreviews(stage, m_ReadOnlyResources[(uint32_t)stage], copy, false, dirPath);
+  }
+
+  res = RDDialog::information(
+      NULL, tr(""),
+      tr("Saving batch textures done, total count is %1, dir is %2").arg(successCount).arg(dirPath));
+
+  if(res)
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
+}
+
+void TextureViewer::on_saveAllTexs_clicked()
+{
+  TextureDescription *texptr = GetCurrentTexture();
+
+  if(!texptr || !m_Output)
+    return;
+
+  m_SaveConfig.resourceId = m_TexDisplay.resourceId;
+  m_SaveConfig.typeCast = m_TexDisplay.typeCast;
+  m_SaveConfig.slice.sliceIndex = (int)m_TexDisplay.subresource.slice;
+  m_SaveConfig.mip = (int)m_TexDisplay.subresource.mip;
+  m_SaveConfig.channelExtract = -1;
+  m_SaveConfig.comp.blackPoint = m_TexDisplay.rangeMin;
+  m_SaveConfig.comp.whitePoint = m_TexDisplay.rangeMax;
+  m_SaveConfig.alphaCol = m_TexDisplay.backgroundColor;
+
+  TextureSaveDialog saveDialog(*texptr, false, m_SaveConfig, this,
+                               TextureSaveDialog::SaveType::All);
+  int res = RDDialog::show(&saveDialog);
+
+  m_SaveConfig = saveDialog.config();
+
+  if(!res)
+    return;
+
+  ANALYTIC_SET(Export.Texture, true);
+
+  QString dirPath = saveDialog.filename();
+  const rdcarray<TextureDescription> &textures = m_Ctx.GetTextures();
+
+  if(textures.empty())
+    return;
+
+  int step = 0;
+  QProgressDialog progressDialog(tr("Operation in saving progress..."), QString(), 0,
+                                 textures.count(), m_Ctx.GetMainWindow()->Widget());
+  progressDialog.setWindowTitle(tr("Please Wait"));
+  progressDialog.setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
+  progressDialog.setWindowIcon(QIcon());
+  progressDialog.setMinimumSize(QSize(250, 0));
+  progressDialog.setMaximumSize(QSize(500, 200));
+  progressDialog.setCancelButton(NULL);
+  progressDialog.setMinimumDuration(0);
+  progressDialog.setWindowModality(Qt::ApplicationModal);
+  progressDialog.setValue(step);
+
+  int successCount = 0;
+
+  for(const TextureDescription &tex : textures)
+  {
+    TextureSave saveConfig = m_SaveConfig;
+    saveConfig.resourceId = tex.resourceId;
+    saveConfig.channelExtract = -1;
+
+    QString filename = QDir(dirPath).filePath(
+        QFormatStr("%1.%2").arg(ToQStr(tex.resourceId)).arg(ToQStr(saveConfig.destType).toLower()));
+
+    ResultDetails result = {ResultCode::Succeeded};
+
+    m_Ctx.Replay().BlockInvoke([saveConfig, &result, filename](IReplayController *r) {
+      result = r->SaveTexture(saveConfig, filename);
+    });
+
+    if(result.OK())
+      successCount++;
+
+    progressDialog.setValue(++step);
+  }
+
+  progressDialog.close();
+
+  res = RDDialog::information(
+      NULL, tr(""),
+      tr("Saving all textures done, total count is %1, dir is %2").arg(successCount).arg(dirPath));
+
+  if(res)
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dirPath));
 }
 
 void TextureViewer::on_debugPixelContext_clicked()

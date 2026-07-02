@@ -38,8 +38,16 @@ class TextureSaveDialog : public QDialog
   Q_OBJECT
 
 public:
+  enum class SaveType
+  {
+    Single,
+    Batch,
+    All,
+  };
+
   explicit TextureSaveDialog(const TextureDescription &t, bool enableOverlaySelection,
-                             const TextureSave &s, QWidget *parent = 0);
+                             const TextureSave &s, QWidget *parent = 0,
+                             SaveType saveType = SaveType::Single);
   ~TextureSaveDialog();
 
   QString filename();
@@ -93,4 +101,5 @@ private:
   bool m_saveOverlayInsteadOfSelectedTexture = false;
 
   bool m_Recurse = false;
+  SaveType m_SaveType = SaveType::Single;
 };

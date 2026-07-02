@@ -33,14 +33,37 @@ static const char keystoreName[] = "renderdoc.keystore";
 
 namespace Android
 {
+rdcstr GetZipEntryNameFromListLine(rdcstr line)
+{
+  line.trim();
+
+  if(line.empty() || line.beginsWith("Archive:") || line.beginsWith("Length") ||
+     line.beginsWith("--------"))
+    return "";
+
+  rdcarray<rdcstr> columns;
+  split(line, columns, ' ');
+
+  for(int32_t i = int32_t(columns.size()) - 1; i >= 0; i--)
+  {
+    columns[i].trim();
+
+    if(!columns[i].empty())
+      return columns[i];
+  }
+
+  return line;
+}
+
 bool RemoveAPKSignature(const rdcstr &apk)
 {
   RDCLOG("Checking for existing signature");
 
-  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr zipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "zip", false);
+  rdcstr unzipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "unzip", false);
 
   // Get the list of files in META-INF
-  rdcstr fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcstr fileList = execCommand(unzipTool, "-l \"" + apk + "\"").strStdout;
   if(fileList.empty())
     return false;
 
@@ -53,12 +76,15 @@ bool RemoveAPKSignature(const rdcstr &apk)
 
   for(rdcstr &line : lines)
   {
-    line.trim();
+    rdcstr entry = GetZipEntryNameFromListLine(line);
+    if(entry.empty())
+      continue;
+
     fileCount++;
-    if(line.beginsWith("META-INF"))
+    if(entry.beginsWith("META-INF"))
     {
-      RDCDEBUG("Match found, removing  %s", line.c_str());
-      execCommand(aapt, "remove \"" + apk + "\" " + line);
+      RDCDEBUG("Match found, removing  %s", entry.c_str());
+      execCommand(zipTool, "-d \"" + apk + "\" " + entry);
       matchCount++;
     }
   }
@@ -66,14 +92,14 @@ bool RemoveAPKSignature(const rdcstr &apk)
 
   // Ensure no hits on second pass through
   RDCDEBUG("Walk through file list again, ensure signature removed");
-  fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  fileList = execCommand(unzipTool, "-l \"" + apk + "\"").strStdout;
   split(fileList, lines, '\n');
   for(rdcstr &line : lines)
   {
-    line.trim();
-    if(line.beginsWith("META-INF"))
+    rdcstr entry = GetZipEntryNameFromListLine(line);
+    if(entry.beginsWith("META-INF"))
     {
-      RDCERR("Match found, that means removal failed! %s", line.c_str());
+      RDCERR("Match found, that means removal failed! %s", entry.c_str());
       return false;
     }
   }
@@ -120,19 +146,20 @@ bool ExtractAndRemoveManifest(const rdcstr &apk, bytebuf &manifest)
   if(manifest.empty())
     return false;
 
-  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr zipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "zip", false);
+  rdcstr unzipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "unzip", false);
 
   RDCDEBUG("Removing AndroidManifest.xml");
-  execCommand(aapt, "remove \"" + apk + "\" AndroidManifest.xml");
+  execCommand(zipTool, "-d \"" + apk + "\" AndroidManifest.xml");
 
-  rdcstr fileList = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcstr fileList = execCommand(unzipTool, "-l \"" + apk + "\"").strStdout;
   rdcarray<rdcstr> files;
-  split(fileList, files, ' ');
+  split(fileList, files, '\n');
 
   for(rdcstr &f : files)
   {
-    f.trim();
-    if(f == "AndroidManifest.xml")
+    rdcstr entry = GetZipEntryNameFromListLine(f);
+    if(entry == "AndroidManifest.xml")
     {
       RDCERR("AndroidManifest.xml found, that means removal failed!");
       return false;
@@ -144,14 +171,14 @@ bool ExtractAndRemoveManifest(const rdcstr &apk, bytebuf &manifest)
 
 bool AddManifestToAPK(const rdcstr &apk, const rdcstr &tmpDir, const bytebuf &manifest)
 {
-  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr zipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "zip", false);
 
   // write the manifest to disk
   FileIO::WriteAll(tmpDir + "AndroidManifest.xml", manifest);
 
-  // run aapt to add the manifest
+  // run zip to add the manifest
   Process::ProcessResult result =
-      execCommand(aapt, "add \"" + apk + "\" AndroidManifest.xml", tmpDir);
+      execCommand(zipTool, "-m \"" + apk + "\" AndroidManifest.xml", tmpDir);
 
   if(result.strStdout.empty())
   {
@@ -248,7 +275,7 @@ bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
 {
   RDCLOG("Signing with debug key");
 
-  rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
+  rdcstr unzipTool = getToolPath(ToolDir::InstalledPluginsAndroid, "unzip", false);
   rdcstr apksigner = getToolPath(ToolDir::BuildToolsLib, "apksigner.jar", false);
 
   rdcstr debugKey = GetAndroidDebugKey();
@@ -278,7 +305,7 @@ bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
     rdcstr signerdir = get_dirname(FileIO::GetFullPathname(apksigner));
 
     rdcstr javaargs;
-    javaargs += " \"-Djava.ext.dirs=" + signerdir + "\"";
+    javaargs += " -cp \"" + signerdir + "\"";
     javaargs += " -jar \"" + apksigner + "\"";
     javaargs += args;
 
@@ -286,11 +313,9 @@ bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
   }
 
   // Check for signature
-  rdcstr list = execCommand(aapt, "list \"" + apk + "\"").strStdout;
+  rdcstr list = execCommand(unzipTool, "-l \"" + apk + "\"").strStdout;
 
-  list.insert(0, '\n');
-
-  if(list.find("\nMETA-INF") >= 0)
+  if(list.find(" META-INF") >= 0)
   {
     RDCLOG("Signature found, continuing...");
     return true;
@@ -363,7 +388,8 @@ bool CheckPatchingRequirements()
   // check for required tools for patching
   rdcarray<rdcpair<ToolDir, rdcstr>> requirements;
   rdcarray<rdcstr> missingTools;
-  requirements.push_back({ToolDir::BuildTools, "aapt"});
+  requirements.push_back({ToolDir::InstalledPluginsAndroid, "zip"});
+  requirements.push_back({ToolDir::InstalledPluginsAndroid, "unzip"});
   requirements.push_back({ToolDir::BuildTools, "zipalign"});
   requirements.push_back({ToolDir::BuildToolsLib, "apksigner.jar"});
   requirements.push_back({ToolDir::Java, "java"});

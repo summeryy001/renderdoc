@@ -44,6 +44,7 @@ enum class ToolDir
   BuildTools,
   BuildToolsLib,
   PlatformTools,
+  InstalledPluginsAndroid,
 };
 rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist);
 bool toolExists(const rdcstr &path);

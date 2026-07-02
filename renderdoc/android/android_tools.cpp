@@ -71,6 +71,17 @@ rdcstr getToolInSDK(ToolDir subdir, const rdcstr &jdkroot, const rdcstr &sdkroot
 
       break;
     }
+    case ToolDir::InstalledPluginsAndroid:
+    {
+      rdcstr libpath;
+      FileIO::GetLibraryFilename(libpath);
+      toolpath = get_dirname(FileIO::GetFullPathname(libpath)) + "/plugins/android/" + toolname;
+
+      if(toolExists(toolpath))
+        return toolpath;
+
+      break;
+    }
     case ToolDir::BuildTools:
     case ToolDir::BuildToolsLib:
     case ToolDir::PlatformTools:

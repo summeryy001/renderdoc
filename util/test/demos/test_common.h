@@ -44,7 +44,7 @@
 #include <string>
 #include <vector>
 
-#include "renderdoc_app.h"
+#include "newman_app.h"
 
 typedef uint8_t byte;
 
@@ -219,12 +219,12 @@ struct GraphicsTest
   int curFrame = -1;
 
   const char *demoName = "Unknown_Test";
-  const char *screenTitle = "RenderDoc test program";
+  const char *screenTitle = "NewMan test program";
 
   bool headless = false;
   bool subtest = false;
 
-  RENDERDOC_API_1_7_0 *rdoc = NULL;
+  NEWMAN_API_1_7_0 *rdoc = NULL;
 
   std::string tmpPath;
 

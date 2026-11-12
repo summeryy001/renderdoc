@@ -2,7 +2,7 @@ from __future__ import annotations
 import os
 import re
 import datetime
-import renderdoc as rd
+import newman as rd
 from . import util
 from . import analyse
 from . import capture
@@ -285,7 +285,7 @@ class TestCase:
         """
         Method to overload if you want to override the replay options used.
 
-        :return: The renderdoc.ReplayOptions to use.
+        :return: The newman.ReplayOptions to use.
         """
 
         return rd.ReplayOptions()
@@ -294,7 +294,7 @@ class TestCase:
         """
         Method to overload if you want to override the capture options used.
 
-        :return: The renderdoc.CaptureOptions to use.
+        :return: The newman.CaptureOptions to use.
         """
 
         return rd.CaptureOptions()

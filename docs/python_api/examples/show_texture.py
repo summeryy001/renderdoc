@@ -1,23 +1,23 @@
 # these imports are not strictly necessary, but are convenient
-import renderdoc
-import qrenderdoc
+import newman
+import qnewman
 
 # this is here to give autocomplete when editing the example
 # in VS Code where it doesn't know about this global
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    pyrenderdoc = qrenderdoc.CaptureContext()
+    pynewman = qnewman.CaptureContext()
 
-if not pyrenderdoc.IsCaptureLoaded():
-    filename = pyrenderdoc.Extensions().OpenFileName("Choose a capture", "", "*.rdc")
+if not pynewman.IsCaptureLoaded():
+    filename = pynewman.Extensions().OpenFileName("Choose a capture", "", "*.rdc")
 
-    pyrenderdoc.LoadCapture(filename, renderdoc.ReplayOptions(), filename, False, True)
+    pynewman.LoadCapture(filename, newman.ReplayOptions(), filename, False, True)
 
 highestArea = 0
 largest = None
-for tex in pyrenderdoc.GetTextures():
-    name = pyrenderdoc.GetResourceName(tex.resourceId)
+for tex in pynewman.GetTextures():
+    name = pynewman.GetResourceName(tex.resourceId)
     print(f"{name} is {tex.width} x {tex.height}")
     area = tex.width * tex.height
     if area > highestArea:
@@ -25,45 +25,45 @@ for tex in pyrenderdoc.GetTextures():
         largest = tex
 
 if largest is not None:
-    name = pyrenderdoc.GetResourceName(largest.resourceId)
+    name = pynewman.GetResourceName(largest.resourceId)
     print(f"\n+++ Largest texture is {name}")
 
     # open largest texture (by area) in texture viewer, and focus
-    pyrenderdoc.ShowTextureViewer()
-    pyrenderdoc.GetTextureViewer().ViewTexture(
-        largest.resourceId, renderdoc.CompType.Typeless, True
+    pynewman.ShowTextureViewer()
+    pynewman.GetTextureViewer().ViewTexture(
+        largest.resourceId, newman.CompType.Typeless, True
     )
 
     # Get access to a controller to get the texture saving API access.
     # We use the blocking controller for simplicity, but a better option
     # might be to invoke onto the replay thread with
-    # pyrenderdoc.Replay().AsyncInvoke()
-    controller = pyrenderdoc.GetBlockingController()
+    # pynewman.Replay().AsyncInvoke()
+    controller = pynewman.GetBlockingController()
 
-    filename = pyrenderdoc.Extensions().SaveFileName(
+    filename = pynewman.Extensions().SaveFileName(
         "Choose where to save JPG/PNG/DDS texture files", "", "*.jpg"
     )
 
     filename = filename.replace(".jpg", "")
 
-    texsave = renderdoc.TextureSave()
+    texsave = newman.TextureSave()
     texsave.resourceId = largest.resourceId
 
     # Blend alpha to a checkerboard pattern for formats without alpha support
-    texsave.alpha = renderdoc.AlphaMapping.BlendToCheckerboard
+    texsave.alpha = newman.AlphaMapping.BlendToCheckerboard
 
     # Most formats can only display a single image per file, so we select the
     # first mip and first slice
     texsave.mip = 0
     texsave.slice.sliceIndex = 0
 
-    texsave.destType = renderdoc.FileType.JPG
+    texsave.destType = newman.FileType.JPG
     controller.SaveTexture(texsave, filename + ".jpg")
 
     # For formats with an alpha channel, preserve it
-    texsave.alpha = renderdoc.AlphaMapping.Preserve
+    texsave.alpha = newman.AlphaMapping.Preserve
 
-    texsave.destType = renderdoc.FileType.PNG
+    texsave.destType = newman.FileType.PNG
     controller.SaveTexture(texsave, filename + ".png")
 
     # DDS textures can save multiple mips and array slices, so instead
@@ -72,5 +72,5 @@ if largest is not None:
     texsave.mip = -1
     texsave.slice.sliceIndex = -1
 
-    texsave.destType = renderdoc.FileType.DDS
+    texsave.destType = newman.FileType.DDS
     controller.SaveTexture(texsave, filename + ".dds")

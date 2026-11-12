@@ -1,18 +1,18 @@
 # these imports are not strictly necessary, but are convenient
-import renderdoc
-import qrenderdoc
+import newman
+import qnewman
 
 # this is here to give autocomplete when editing the example
 # in VS Code where it doesn't know about this global
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    pyrenderdoc = qrenderdoc.CaptureContext()
+    pynewman = qnewman.CaptureContext()
 
-pyrenderdoc.ShowCaptureDialog()
-dialog = pyrenderdoc.GetCaptureDialog()
+pynewman.ShowCaptureDialog()
+dialog = pynewman.GetCaptureDialog()
 
-exe = pyrenderdoc.Extensions().OpenFileName("Find an executable", "", "*.exe")
+exe = pynewman.Extensions().OpenFileName("Find an executable", "", "*.exe")
 
 dialog.SetExecutableFilename(exe)
 
@@ -24,17 +24,17 @@ settings = dialog.Settings()
 print(settings.commandLine)
 
 # reset anything the user has changed to default
-settings.options = renderdoc.CaptureOptions()
+settings.options = newman.CaptureOptions()
 
 # enable callstack capture
 settings.options.captureCallstacks = True
 
 dialog.SetSettings(settings)
 
-opts = [qrenderdoc.DialogButton.Yes, qrenderdoc.DialogButton.No]
-go = pyrenderdoc.Extensions().QuestionDialog("Ready to Launch?", opts, "Final Check")
+opts = [qnewman.DialogButton.Yes, qnewman.DialogButton.No]
+go = pynewman.Extensions().QuestionDialog("Ready to Launch?", opts, "Final Check")
 
-if go == qrenderdoc.DialogButton.Yes:
+if go == qnewman.DialogButton.Yes:
     conn = dialog.Launch()
 
     # don't allow the connection to close itself so we can expect that it will be valid
@@ -51,4 +51,4 @@ if go == qrenderdoc.DialogButton.Yes:
             print(f"{numcaps} captures have been made!")
 
     # wait a little bit, then call our callback to print the connection status
-    pyrenderdoc.DelayedCallback(5000, connected_cb)
+    pynewman.DelayedCallback(5000, connected_cb)

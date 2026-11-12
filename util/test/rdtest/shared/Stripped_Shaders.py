@@ -1,6 +1,6 @@
 import rdtest
 import shutil
-import renderdoc as rd
+import newman as rd
 import re
 
 

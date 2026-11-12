@@ -1,5 +1,5 @@
 from __future__ import annotations
-import renderdoc as rd
+import newman as rd
 import rdtest
 
 

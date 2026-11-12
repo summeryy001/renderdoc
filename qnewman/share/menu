@@ -1,0 +1,6 @@
+?package(local.newman):needs="x11" section="Applications/Programming" \
+	title="NewMan" \
+	command="qnewman" \
+	icon="/usr/share/pixmaps/newman-icon-32x32.xpm" \
+	icon16x16="/usr/share/pixmaps/newman-icon-16x16.xpm" \
+	icon32x32="/usr/share/pixmaps/newman-icon-32x32.xpm"

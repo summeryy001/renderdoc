@@ -1,4 +1,4 @@
-import renderdoc as rd
+import newman as rd
 import rdtest
 import os
 

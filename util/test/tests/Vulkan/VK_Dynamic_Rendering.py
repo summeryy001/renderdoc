@@ -1,5 +1,5 @@
 import rdtest
-import renderdoc as rd
+import newman as rd
 
 
 class VK_Dynamic_Rendering(rdtest.TestCase):

@@ -488,7 +488,7 @@ void GraphicsTest::Prepare(int argc, char **argv)
 
   prepared = true;
 
-  dataRoot = GetEnvVar("RENDERDOC_DEMOS_DATA");
+  dataRoot = GetEnvVar("NEWMAN_DEMOS_DATA");
 
   if(dataRoot.empty())
     dataRoot = GetCWD() + "/data/demos/";
@@ -560,31 +560,31 @@ void GraphicsTest::Prepare(int argc, char **argv)
   tmpPath += demoName;
   MakeDir(tmpPath.c_str());
 
-  pRENDERDOC_GetAPI RENDERDOC_GetAPI = NULL;
+  pNEWMAN_GetAPI NEWMAN_GetAPI = NULL;
 
 #if defined(WIN32)
-  HMODULE mod = GetModuleHandleA("renderdoc.dll");
+  HMODULE mod = GetModuleHandleA("newman.dll");
   if(mod)
-    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+    NEWMAN_GetAPI = (pNEWMAN_GetAPI)GetProcAddress(mod, "NEWMAN_GetAPI");
 #elif defined(ANDROID)
-  void *mod = dlopen("libVkLayer_GLES_RenderDoc.so", RTLD_NOW | RTLD_NOLOAD);
+  void *mod = dlopen("libVkLayer_GLES_NewMan.so", RTLD_NOW | RTLD_NOLOAD);
   if(mod)
-    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+    NEWMAN_GetAPI = (pNEWMAN_GetAPI)dlsym(mod, "NEWMAN_GetAPI");
 #elif defined(__linux__)
-  void *mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
+  void *mod = dlopen("libnewman.so", RTLD_NOW | RTLD_NOLOAD);
   if(mod)
-    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+    NEWMAN_GetAPI = (pNEWMAN_GetAPI)dlsym(mod, "NEWMAN_GetAPI");
 #elif defined(__APPLE__)
-  void *mod = dlopen("librenderdoc.dylib", RTLD_NOW | RTLD_NOLOAD);
+  void *mod = dlopen("libnewman.dylib", RTLD_NOW | RTLD_NOLOAD);
   if(mod)
-    RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+    NEWMAN_GetAPI = (pNEWMAN_GetAPI)dlsym(mod, "NEWMAN_GetAPI");
 #else
 #error UNKNOWN PLATFORM
 #endif
 
-  if(RENDERDOC_GetAPI)
+  if(NEWMAN_GetAPI)
   {
-    int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_7_0, (void **)&rdoc);
+    int ret = NEWMAN_GetAPI(eNEWMAN_API_Version_1_7_0, (void **)&rdoc);
 
     if(ret != 1)
       rdoc = NULL;

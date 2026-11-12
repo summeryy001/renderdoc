@@ -1,6 +1,6 @@
 from typing import Callable
 
-import renderdoc as rd
+import newman as rd
 import rdtest
 
 

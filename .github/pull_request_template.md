@@ -3,7 +3,7 @@ Before submitting a pull request you are strongly recommended to read the
 docs/CONTRIBUTING.md file which gives some information on how to prepare a
 change:
 
-https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING.md
+https://github.com/baldurk/newman/blob/v1.x/docs/CONTRIBUTING.md
 
 Use of LLMs in any way other than machine translation of language is strictly prohibited, including generating any text.
 

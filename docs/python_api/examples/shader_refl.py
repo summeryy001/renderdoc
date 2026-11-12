@@ -1,24 +1,24 @@
 # these imports are not strictly necessary, but are convenient
-import renderdoc
-import qrenderdoc
+import newman
+import qnewman
 
 # this is here to give autocomplete when editing the example
 # in VS Code where it doesn't know about this global
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    pyrenderdoc = qrenderdoc.CaptureContext()
+    pynewman = qnewman.CaptureContext()
 
-if not pyrenderdoc.IsCaptureLoaded():
-    filename = pyrenderdoc.Extensions().OpenFileName("Choose a capture", "", "*.rdc")
+if not pynewman.IsCaptureLoaded():
+    filename = pynewman.Extensions().OpenFileName("Choose a capture", "", "*.rdc")
 
-    pyrenderdoc.LoadCapture(filename, renderdoc.ReplayOptions(), filename, False, True)
+    pynewman.LoadCapture(filename, newman.ReplayOptions(), filename, False, True)
 
-pyrenderdoc.CurPipelineState().GetVertexInputs()
+pynewman.CurPipelineState().GetVertexInputs()
 
 
-vs = pyrenderdoc.CurPipelineState().GetShaderReflection(renderdoc.ShaderStage.Vertex)
-ps = pyrenderdoc.CurPipelineState().GetShaderReflection(renderdoc.ShaderStage.Pixel)
+vs = pynewman.CurPipelineState().GetShaderReflection(newman.ShaderStage.Vertex)
+ps = pynewman.CurPipelineState().GetShaderReflection(newman.ShaderStage.Pixel)
 
 if vs is None or ps is None:
     raise ValueError("Expected a draw with a VS and PS to be selected")
@@ -102,7 +102,7 @@ if len(ps.samplers) > 0:
 
 print()
 
-print(f"PS was compiled by {renderdoc.ToolExecutable(ps.debugInfo.compiler)}")
+print(f"PS was compiled by {newman.ToolExecutable(ps.debugInfo.compiler)}")
 print(f"{str(ps.debugInfo.encoding)} was compiled to {str(ps.encoding)}")
 
 if ps.debugInfo.debuggable:

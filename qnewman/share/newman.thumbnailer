@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=/usr/bin/newmancmd
+Exec=/usr/bin/newmancmd thumb -f png -s %s -o %o %i
+MimeType=application/x-newman-capture;

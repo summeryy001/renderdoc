@@ -5,4 +5,12 @@
 	<IncludePath>$(SolutionDir)\util\sdkfix;$(IncludePath)</IncludePath>
 </PropertyGroup>
 
+<!-- Keep mutex initialization compatible with older app-local MSVC runtimes.
+     Apply consistently to all Windows C++ projects, including static libraries. -->
+<ItemDefinitionGroup>
+  <ClCompile>
+    <PreprocessorDefinitions>_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+  </ClCompile>
+</ItemDefinitionGroup>
+
 </Project>

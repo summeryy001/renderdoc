@@ -586,7 +586,14 @@ private:
 
   static void *nvapi_QueryInterface_hook(uint32_t ID)
   {
-    void *real = nvhooks.nvapi_QueryInterface()(ID);
+    PFNNVQueryInterface query = nvhooks.nvapi_QueryInterface();
+    if(query == NULL)
+    {
+      RDCWARN("RDOC_DIAG NVAPI_QUERY_UNAVAILABLE id=0x%08x", ID);
+      return NULL;
+    }
+
+    void *real = query(ID);
 
     if(real == NULL)
       return real;

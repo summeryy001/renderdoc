@@ -165,9 +165,9 @@ int main(int argc, char **argv)
     st.len = 0;
     int triggered = 0;
     int apiRegistered = 0;
-    int phaseEnd = GetTickCount() + listenMs;
-    int totalEnd = phaseEnd + afterMs;
-    char str1[1024], str2[1024], str3[1024];
+    DWORD phaseEnd = GetTickCount() + (DWORD)listenMs;
+    DWORD totalEnd = phaseEnd + (DWORD)afterMs;
+    char str1[1024], str2[1024];
 
     while (GetTickCount() < totalEnd) {
         if (!EnsureBytes(&st, 8, 200)) {

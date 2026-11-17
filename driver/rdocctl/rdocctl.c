@@ -164,10 +164,6 @@ int main(int argc, char **argv)
             }
             in.entryCount = n;
             // read-modify-write the arm file with a fresh sequence
-            #pragma pack(push,1)
-            typedef struct { ULONG magic; ULONG seq; ULONG ackSeq; ULONG doRescan;
-                             ULONG doModscan; ULONG doDisarm; RDOC_ARM_IN in; } ARM_FILE;
-            #pragma pack(pop)
             ARM_FILE f;
             ZeroMemory(&f, sizeof(f));
             HANDLE hf = CreateFileA(armPath, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE,

@@ -26,6 +26,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\validation\impl_earlyh
 
 The symbol gate derives RVAs from the current DLL/PDB. Never reuse RVAs from an older build.
 
+After the offline gates pass and the driver has been built, a dedicated test machine can run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\driver\go_live_impl.ps1 `
+  -MapperPath C:\path\to\approved-mapper.exe `
+  -TargetProcessName 'Client-Win64-Shipping*' `
+  -TargetImplRva 0x16940
+```
+
+The RenderDoc wrapper and orig-slot RVAs are derived from the current PDB. `TargetImplRva` belongs
+to the machine's `d3d11.dll` and must be independently verified for that exact system build.
+
 ## Driver requirement
 
 The driver project requires the Visual Studio WDK integration and the

@@ -50,4 +50,3 @@ $result = [ordered]@{
 }
 $result | ConvertTo-Json -Depth 4
 Write-Host 'SYMBOL_GATE_OK'
-

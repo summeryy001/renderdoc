@@ -26,4 +26,3 @@ foreach($command in $commands) {
 }
 
 Write-Host "TOOLS_BUILD_OK output=$out"
-
